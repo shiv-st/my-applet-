@@ -91,6 +91,10 @@ interface CreatorContextType {
   isUpgradeModalOpen: boolean;
   setIsUpgradeModalOpen: (open: boolean) => void;
 
+  // GitHub Sync & Export Modal
+  isGitHubModalOpen: boolean;
+  setIsGitHubModalOpen: (open: boolean) => void;
+
   // Anime Theme & Background Translucency
   animeTheme: AnimeThemeId;
   setAnimeTheme: (theme: AnimeThemeId) => void;
@@ -233,6 +237,7 @@ export const CreatorProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState<boolean>(false);
+  const [isGitHubModalOpen, setIsGitHubModalOpen] = useState<boolean>(false);
 
   const [animeTheme, setAnimeThemeState] = useState<AnimeThemeId>(() => {
     const themeVersion = localStorage.getItem('gc_theme_v3');
@@ -452,6 +457,8 @@ export const CreatorProvider: React.FC<{ children: React.ReactNode }> = ({ child
         removeToast,
         isUpgradeModalOpen,
         setIsUpgradeModalOpen,
+        isGitHubModalOpen,
+        setIsGitHubModalOpen,
         animeTheme,
         setAnimeTheme,
         bgTranslucency,

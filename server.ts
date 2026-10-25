@@ -2,6 +2,8 @@ import express, { type Request, type Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { exec, execSync } from 'child_process';
+import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
 import { getFallbackIdeas, getFallbackTitles } from './src/server/creatorFallbacks.ts';
 
@@ -544,6 +546,191 @@ Return a JSON object with:
       disclaimer: 'Growth recommendations are strategic optimizations based on YouTube creator best practices, not guarantees of algorithmic impressions.'
     }
   });
+});
+
+// ==========================================
+// GitHub Integration & Code Export Endpoints
+// ==========================================
+
+// Check GitHub connection and repository permissions
+app.get('/api/github/status', async (req: Request, res: Response) => {
+  const token = (process.env.GITHUB_TOKEN || '').trim();
+  const username = (process.env.GITHUB_USERNAME || 'shiv-st').trim();
+  const repo = (process.env.GITHUB_REPO || 'my-applet-').trim();
+
+  if (!token) {
+    return res.json({
+      configured: false,
+      message: 'No GitHub token configured yet.'
+    });
+  }
+
+  try {
+    // 1. Verify user authentication
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'GameCreator-AI-Export'
+      }
+    });
+
+    if (!userRes.ok) {
+      return res.json({
+        configured: true,
+        authenticated: false,
+        status: userRes.status,
+        message: 'GitHub token was rejected by GitHub. Check if token has expired or is invalid.'
+      });
+    }
+
+    const userData = await userRes.json();
+
+    // 2. Check repo access
+    const repoRes = await fetch(`https://api.github.com/repos/${username}/${repo}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'GameCreator-AI-Export'
+      }
+    });
+
+    const repoData = repoRes.ok ? await repoRes.json() : null;
+
+    // 3. Test if token has write (contents) permissions
+    // Fine-grained PATs require "Contents: Read and write"
+    const contentsCheck = await fetch(`https://api.github.com/repos/${username}/${repo}/contents/.test-check`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'GameCreator-AI-Export'
+      },
+      body: JSON.stringify({
+        message: 'test check',
+        content: Buffer.from('test').toString('base64')
+      })
+    });
+
+    const hasWriteAccess = contentsCheck.ok || (contentsCheck.status !== 403 && contentsCheck.status !== 401);
+    const writeError = !contentsCheck.ok ? await contentsCheck.json().catch(() => ({})) : null;
+
+    // Clean up test file if it was created
+    if (contentsCheck.ok) {
+      const createdData = await contentsCheck.json();
+      if (createdData?.content?.sha) {
+        await fetch(`https://api.github.com/repos/${username}/${repo}/contents/.test-check`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'GameCreator-AI-Export'
+          },
+          body: JSON.stringify({
+            message: 'cleanup test check',
+            sha: createdData.content.sha
+          })
+        }).catch(() => {});
+      }
+    }
+
+    return res.json({
+      configured: true,
+      authenticated: true,
+      username: userData.login,
+      repo: repoData?.full_name || `${username}/${repo}`,
+      repoUrl: repoData?.html_url || `https://github.com/${username}/${repo}`,
+      hasWriteAccess,
+      needsContentsPermission: !hasWriteAccess && (writeError?.message?.includes('Resource not accessible') || contentsCheck.status === 403),
+      message: hasWriteAccess
+        ? 'GitHub connection verified with Full Write Access!'
+        : 'Token authenticated, but GitHub returned 403. Fine-grained PAT requires "Contents: Read and write" permission enabled in GitHub settings.'
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      configured: true,
+      authenticated: false,
+      error: error?.message || 'Failed to communicate with GitHub API'
+    });
+  }
+});
+
+// Push current repository commits to GitHub
+app.post('/api/github/push', async (req: Request, res: Response) => {
+  const customToken = req.body?.token?.trim();
+  const token = customToken || (process.env.GITHUB_TOKEN || '').trim();
+  const username = (req.body?.username || process.env.GITHUB_USERNAME || 'shiv-st').trim();
+  const repo = (req.body?.repo || process.env.GITHUB_REPO || 'my-applet-').trim();
+
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      message: 'No GitHub token provided. Please enter your personal access token.'
+    });
+  }
+
+  // Update .env if token was provided in body
+  if (customToken) {
+    process.env.GITHUB_TOKEN = customToken;
+    try {
+      const envContent = `GITHUB_TOKEN="${customToken}"\nGITHUB_USERNAME="${username}"\nGITHUB_REPO="${repo}"\n`;
+      fs.writeFileSync(path.resolve(__dirname, '.env'), envContent, 'utf-8');
+    } catch (e) {
+      console.warn('Could not write .env:', e);
+    }
+  }
+
+  try {
+    const authRemoteUrl = `https://${encodeURIComponent(username)}:${encodeURIComponent(token)}@github.com/${username}/${repo}.git`;
+    
+    // Execute git push with credentials (using --force to initialize or update branch cleanly)
+    const pushOutput = execSync(`git push -u "${authRemoteUrl}" main --force`, {
+      cwd: __dirname,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    return res.json({
+      success: true,
+      message: 'Successfully pushed all code to your GitHub repository!',
+      repoUrl: `https://github.com/${username}/${repo}`,
+      output: pushOutput
+    });
+  } catch (err: any) {
+    const stderr = err?.stderr?.toString() || err?.message || 'Git push failed';
+    const is403 = stderr.includes('403') || stderr.includes('Permission to') || stderr.includes('denied');
+    
+    return res.status(400).json({
+      success: false,
+      isPermissionError: is403,
+      message: is403
+        ? 'GitHub denied write access (HTTP 403). For Fine-grained tokens, you must set "Contents" permission to "Read and write" in your GitHub token settings.'
+        : `Git push error: ${stderr}`,
+      details: stderr,
+      repoUrl: `https://github.com/${username}/${repo}`
+    });
+  }
+});
+
+// Download full project codebase as a .tar.gz archive
+app.get('/api/export/download', (req: Request, res: Response) => {
+  try {
+    const archivePath = '/tmp/gamecreator-applet-source.tar.gz';
+    execSync(`tar --exclude='./node_modules' --exclude='./.git' --exclude='./dist' -czf "${archivePath}" .`, {
+      cwd: __dirname
+    });
+
+    res.setHeader('Content-Type', 'application/gzip');
+    res.setHeader('Content-Disposition', 'attachment; filename="gamecreator-ai-source.tar.gz"');
+    
+    const fileStream = fs.createReadStream(archivePath);
+    fileStream.pipe(res);
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to generate project archive',
+      details: error?.message
+    });
+  }
 });
 
 // Production static file serving or Vite development middleware

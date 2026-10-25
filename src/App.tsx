@@ -12,6 +12,7 @@ import { LandingPage } from './components/LandingPage';
 import { ToastContainer } from './components/ToastContainer';
 import { UpgradeModal } from './components/UpgradeModal';
 import { AnimeThemeSwitcher } from './components/AnimeThemeSwitcher';
+import { GitHubExportModal } from './components/GitHubExportModal';
 
 // Views
 import { DashboardView } from './components/views/DashboardView';
@@ -144,7 +145,7 @@ const BackgroundAtmosphere: React.FC = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { animeTheme, isThemeModalOpen, setIsThemeModalOpen } = useCreator();
+  const { animeTheme, isThemeModalOpen, setIsThemeModalOpen, isGitHubModalOpen, setIsGitHubModalOpen } = useCreator();
   const isGolden = animeTheme === 'golden_goku';
 
   return (
@@ -162,6 +163,7 @@ const AppContent: React.FC = () => {
       <ToastContainer />
       <UpgradeModal />
       <AnimeThemeSwitcher isOpen={isThemeModalOpen} onClose={() => setIsThemeModalOpen(false)} />
+      <GitHubExportModal isOpen={isGitHubModalOpen} onClose={() => setIsGitHubModalOpen(false)} />
     </div>
   );
 };

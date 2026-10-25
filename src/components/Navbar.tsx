@@ -14,7 +14,8 @@ import {
   Radio,
   ExternalLink,
   ShieldCheck,
-  Palette
+  Palette,
+  Github
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -27,6 +28,8 @@ export const Navbar: React.FC = () => {
     hasGeminiKey,
     channelStats,
     setIsUpgradeModalOpen,
+    isGitHubModalOpen,
+    setIsGitHubModalOpen,
     animeTheme,
     setIsThemeModalOpen,
     showToast
@@ -160,6 +163,21 @@ export const Navbar: React.FC = () => {
               className="w-2 h-2 rounded-full inline-block shadow-sm"
               style={{ backgroundColor: currentThemeConfig.primaryColor }}
             />
+          </button>
+
+          {/* GitHub Sync & Export Button */}
+          <button
+            onClick={() => setIsGitHubModalOpen(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs text-slate-200 transition-all active:scale-95 group ${
+              isGolden
+                ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-200 shadow-sm'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10'
+            }`}
+            title="Export Code or Sync to GitHub"
+            aria-label="GitHub Export"
+          >
+            <Github className={`w-3.5 h-3.5 group-hover:scale-110 transition-transform ${isGolden ? 'text-amber-400' : 'text-purple-400'}`} />
+            <span className="hidden sm:inline font-semibold">GitHub / Export</span>
           </button>
 
           {/* Tier Badge / Upgrade Button */}
