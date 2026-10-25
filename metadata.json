@@ -1,0 +1,6 @@
+{
+  "name": "GameCreator AI — The Ultimate AI Toolkit for Gaming YouTubers",
+  "description": "Production-grade AI workspace for gaming YouTubers, streamers, and content creators. Generate video ideas, high-CTR titles, thumbnail concepts, scripts, Shorts, SEO packaging, and content calendars.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.font-bebas {
+  font-family: 'Bebas Neue', sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.font-heading {
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Custom dark scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f111a;
+}
+::-webkit-scrollbar-thumb {
+  background: #25283b;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b3f5c;
+}
+
+/* White & Golden Brown Theme Custom Tokens */
+[data-theme='golden_goku'] {
+  --theme-gold-400: #fbbf24;
+  --theme-gold-500: #d97706;
+  --theme-gold-600: #b45309;
+  --theme-brown-800: #78350f;
+  --theme-brown-900: #451a03;
+  --theme-white: #ffffff;
+  --theme-champagne: #fef3c7;
+}
+
+[data-theme='golden_goku'] ::-webkit-scrollbar-track {
+  background: #120e09;
+}
+[data-theme='golden_goku'] ::-webkit-scrollbar-thumb {
+  background: #452a12;
+}
+[data-theme='golden_goku'] ::-webkit-scrollbar-thumb:hover {
+  background: #78471c;
+}
+
+/* Neon & Aura glow utilities */
+.glow-gold {
+  box-shadow: 0 0 25px -4px rgba(217, 119, 6, 0.4);
+}
+
+.glow-white-gold {
+  box-shadow: 0 0 15px -2px rgba(255, 255, 255, 0.25), 0 0 30px -4px rgba(217, 119, 6, 0.35);
+}
+
+.glow-purple {
+  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.35);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.35);
+}
+
+.glow-pink {
+  box-shadow: 0 0 25px -5px rgba(236, 72, 153, 0.35);
+}
